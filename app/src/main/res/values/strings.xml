@@ -1,0 +1,7 @@
+<resources>
+	<string name="app_name">Running Tracker</string>
+	
+	<string name="navigation_menu_map">Map</string>
+	<string name="navigation_menu_data">Data</string>
+	<string name="navigation_menu_settings">Settings</string>
+</resources>

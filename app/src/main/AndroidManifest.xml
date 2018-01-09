@@ -26,7 +26,7 @@
 			android:name="com.google.android.geo.API_KEY"
 			android:value="@string/google_maps_key"/>
 		
-		<service android:name=".GPSService"/>
+		<service android:name=".services.GPSService"/>
 		
 		<activity android:name=".activities.SettingsActivity">
 		</activity>

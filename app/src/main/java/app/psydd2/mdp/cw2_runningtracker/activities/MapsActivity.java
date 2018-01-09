@@ -28,8 +28,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Toast;
-import app.psydd2.mdp.cw2_runningtracker.GPSService;
 import app.psydd2.mdp.cw2_runningtracker.R;
+import app.psydd2.mdp.cw2_runningtracker.services.GPSService;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -48,7 +48,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	private final static int PERMISSION_REQUEST_CODE = 100;
 	
 	private FloatingActionButton fab;
-	boolean serviceCreated = false;
+	boolean storeLocationInformation = false;
 	private GoogleMap map;
 	private ArrayList<LatLng> locations = new ArrayList<>();
 	
@@ -69,21 +69,22 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		fab = findViewById(R.id.floating_action_button);
 		// Check if user has accepted the required permissions
 		if (checkPermissions()) {
+			// Start
+			Intent intent = new Intent(getApplicationContext(), GPSService.class);
+			startService(intent);
+			
 			fab.setOnClickListener(new OnClickListener() {
 				@Override
 				public void onClick(View v) {
-					Intent intent = new Intent(getApplicationContext(), GPSService.class);
-					
 					// Flip service from on/off
-					if (!serviceCreated) {
-						startService(intent);
-						serviceCreated = true;
+					if (!storeLocationInformation) {
+						storeLocationInformation = true;
+						locations = new ArrayList<>();
 						// Change image to cross
 						fab.setImageResource(R.drawable.ic_clear_white_32dp);
 						map.setMaxZoomPreference(17);
 					} else {
-						stopService(intent);
-						serviceCreated = false;
+						storeLocationInformation = false;
 						// Change image to plus
 						fab.setImageResource(R.drawable.ic_add_white_32dp);
 						// Update camera to show entire route
@@ -152,11 +153,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	 * @return True if permissions are granted
 	 */
 	private boolean checkPermissions() {
+		// Check if correct version of android
+		// and app has location permissions
 		if (
 			VERSION.SDK_INT >= VERSION_CODES.M
-				&& ContextCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION)
+			&& ContextCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION)
 				!= PackageManager.PERMISSION_GRANTED
-			) {
+		) {
+			// If not got permissions, request permission dialogue box
 			requestPermissions(new String[]{
 				permission.ACCESS_FINE_LOCATION
 			}, PERMISSION_REQUEST_CODE);
@@ -168,13 +172,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	
 	@Override
 	public void onRequestPermissionsResult(
-		int requestCode, @NonNull String[] permissions,
+		int requestCode,
+		@NonNull String[] permissions,
 		@NonNull int[] grantResults
 	) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 		
+		// If the permission request code matches our code
 		if (requestCode == PERMISSION_REQUEST_CODE) {
+			// Double check that the permission was granted
 			if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+				// else run the check permission method again
 				checkPermissions();
 			}
 		}
@@ -183,16 +191,23 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		if (drawerToggle.onOptionsItemSelected(item)) {
+			// Intercept the onClick and return true if it belongs to
+			// the navigation drawer
 			return true;
 		}
 		
 		return super.onOptionsItemSelected(item);
 	}
 	
+	/**
+	 * Create and register the broadcast receiver which gets location information
+	 * from the {@link GPSService}
+	 */
 	@Override
 	protected void onResume() {
 		super.onResume();
 		
+		// If the broadcast receiver doesn't exist, create it
 		if (broadcastReceiver == null) {
 			broadcastReceiver = new BroadcastReceiver() {
 				@Override
@@ -206,35 +221,49 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 						return;
 					}
 					
-					if (locations == null) {
-						locations = new ArrayList<>();
-					}
-					locations.add(currentPos);
-					
 					// Create marker at new location
 					MarkerOptions marker = new MarkerOptions()
 						.position(currentPos)
-						.icon(vectorToBitmap(R.drawable.ic_directions_run_black_32dp,
-							getApplicationContext().getColor(R.color.colorPrimary))
+						.icon(vectorToBitmap(
+							R.drawable.ic_directions_run_black_32dp,
+							getApplicationContext().getColor(R.color.colorPrimary)
+							)
 						);
+					
 					// Clear the map of old markers and add new one
 					// This is to prevent loads of markers on the screen at each data-point
 					map.clear();
 					map.addMarker(marker);
 					
-					// Update and animate camera position
-					updateCameraPosition(10);
+					// While service is running, store points
+					if (storeLocationInformation) {
+						// Add current position to location array list
+						locations.add(currentPos);
+						
+						// Update and animate camera position
+						updateCameraPosition(10);
+					} else if (locations.size() == 0) {
+						// While locations is empty move the camera
+						// This is for when a run has been completed, it won't
+						// move the camera to the user and stay on the final route
+						// or where the user manually moves it
+						CameraUpdate cam = CameraUpdateFactory.newLatLngZoom(currentPos, 15);
+						map.animateCamera(cam);
+					}
 					
 					// Draw line between all points to show route
+					// Uses app accent colour
 					PolylineOptions line = new PolylineOptions()
 						.addAll(locations)
 						.width(10)
-						.color(getApplicationContext().getColor(R.color.colorAccent));
+						.color(getApplicationContext().getColor(R.color.colorAccent)
+						);
 					map.addPolyline(line);
 				}
 			};
 		}
 		
+		// Register the broadcast receiver with the location_update filter
 		registerReceiver(broadcastReceiver, new IntentFilter(
 			getApplicationContext().getString(R.string.location_updates)
 		));
@@ -243,6 +272,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	/**
 	 * Demonstrates converting a {@link Drawable} to a {@link BitmapDescriptor},
 	 * for use as a marker icon.
+	 *
+	 * Code from Google's Android documentation website
 	 */
 	private BitmapDescriptor vectorToBitmap(@DrawableRes int id, @ColorInt int color) {
 		Drawable vectorDrawable = ResourcesCompat.getDrawable(getResources(), id, null);
@@ -267,12 +298,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	private void updateCameraPosition(int maxNoSteps) {
 		CameraUpdate cameraUpdate;
 		
-		if (locations.size() < 1) {
-			return;
-		} else if (locations.size() == 1) {
-			cameraUpdate = CameraUpdateFactory.newLatLngZoom(locations.get(0), 12);
+		if (locations.size() == 1) {
+			cameraUpdate = CameraUpdateFactory.newLatLngZoom(locations.get(0), 15);
 		} else {
-			
 			LatLngBounds.Builder builder = new LatLngBounds.Builder();
 			
 			if (maxNoSteps < 0) {
@@ -294,11 +322,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		map.animateCamera(cameraUpdate);
 	}
 	
+	/**
+	 * When the map API has been instantiated, store the reference to the
+	 * map object
+	 *
+	 * @param googleMap The map reference
+	 */
 	@Override
 	public void onMapReady(GoogleMap googleMap) {
 		map = googleMap;
 	}
 	
+	/**
+	 * Unregister the broadcast receiver to prevent memory leaks
+	 */
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();

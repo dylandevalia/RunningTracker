@@ -1,4 +1,4 @@
-package app.psydd2.mdp.cw2_runningtracker;
+package app.psydd2.mdp.cw2_runningtracker.services;
 
 import android.annotation.SuppressLint;
 import android.app.Service;
@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.support.annotation.Nullable;
+import app.psydd2.mdp.cw2_runningtracker.R;
 import com.google.android.gms.maps.model.LatLng;
 
 public class GPSService extends Service {

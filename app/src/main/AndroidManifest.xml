@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest
-	xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 	package="app.psydd2.mdp.cw2_runningtracker">
 	
 	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
@@ -12,8 +11,7 @@
 		android:roundIcon="@mipmap/ic_launcher_round"
 		android:supportsRtl="true"
 		android:theme="@style/AppTheme">
-		<activity
-			android:name=".activities.MapsActivity">
+		<activity android:name=".activities.MapsActivity">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN"/>
 				
@@ -23,13 +21,15 @@
 		
 		<meta-data
 			android:name="com.google.android.gms.version"
-			android:value="@integer/google_play_services_version" />
-		
+			android:value="@integer/google_play_services_version"/>
 		<meta-data
 			android:name="com.google.android.geo.API_KEY"
 			android:value="@string/google_maps_key"/>
 		
 		<service android:name=".GPSService"/>
+		
+		<activity android:name=".activities.SettingsActivity">
+		</activity>
 	</application>
 
 </manifest>

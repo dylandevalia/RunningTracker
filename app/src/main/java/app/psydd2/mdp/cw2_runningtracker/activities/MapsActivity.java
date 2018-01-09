@@ -109,6 +109,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		// Shows menu button in action bar
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		
+		// Do stuff when items are pressed
 		NavigationView navigationView = findViewById(R.id.navigation);
 		navigationView.setNavigationItemSelectedListener(new OnNavigationItemSelectedListener() {
 			@Override
@@ -140,6 +141,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 				return true;
 			}
 		});
+		// Set current page to be highlighted
 		navigationView.getMenu().getItem(0).setChecked(true);
 	}
 	

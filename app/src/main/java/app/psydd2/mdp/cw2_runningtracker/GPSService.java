@@ -28,6 +28,8 @@ public class GPSService extends Service {
 	@SuppressLint("MissingPermission")
 	@Override
 	public void onCreate() {
+		// Create a location listener which sends the new latitude/longitude information
+		// to the broadcast receiver
 		listener = new LocationListener() {
 			@Override
 			public void onLocationChanged(Location location) {
@@ -61,10 +63,12 @@ public class GPSService extends Service {
 			}
 		};
 		
+		// Get reference o system location service
 		locationManager = (LocationManager) getApplicationContext()
 			.getSystemService(Context.LOCATION_SERVICE);
 		
 		// Request user location every 3 seconds
+		assert locationManager != null;
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000, 0, listener);
 	}
 	

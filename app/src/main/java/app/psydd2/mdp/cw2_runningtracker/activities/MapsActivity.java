@@ -11,18 +11,23 @@ import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
+import android.os.Bundle;
 import android.support.annotation.ColorInt;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
+import android.support.design.widget.NavigationView.OnNavigationItemSelectedListener;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v4.graphics.drawable.DrawableCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.Toast;
 import app.psydd2.mdp.cw2_runningtracker.GPSService;
 import app.psydd2.mdp.cw2_runningtracker.R;
 import com.google.android.gms.maps.CameraUpdate;
@@ -48,6 +53,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	private ArrayList<LatLng> locations = new ArrayList<>();
 	
 	private BroadcastReceiver broadcastReceiver;
+	
+	private DrawerLayout drawerLayout;
+	private ActionBarDrawerToggle drawerToggle;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -85,6 +93,54 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 				}
 			});
 		}
+		
+		
+		/* Navigation panel */
+		
+		drawerLayout = findViewById(R.id.drawer_layout);
+		drawerToggle = new ActionBarDrawerToggle(
+			this,
+			drawerLayout,
+			R.string.navigation_menu_open,
+			R.string.navigation_menu_close
+		);
+		drawerLayout.addDrawerListener(drawerToggle);
+		drawerToggle.syncState();
+		// Shows menu button in action bar
+		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+		
+		NavigationView navigationView = findViewById(R.id.navigation);
+		navigationView.setNavigationItemSelectedListener(new OnNavigationItemSelectedListener() {
+			@Override
+			public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+				switch (item.getItemId()) {
+					case R.id.nav_map:
+						Toast.makeText(
+							MapsActivity.this,
+							R.string.navigation_menu_map,
+							Toast.LENGTH_SHORT
+						).show();
+						drawerLayout.closeDrawers();
+						break;
+					case R.id.nav_past_data:
+						Toast.makeText(
+							MapsActivity.this,
+							R.string.navigation_menu_data,
+							Toast.LENGTH_SHORT
+						).show();
+						break;
+					case R.id.nav_settings:
+						Toast.makeText(
+							MapsActivity.this,
+							R.string.navigation_menu_settings,
+							Toast.LENGTH_SHORT
+						).show();
+						break;
+				}
+				return true;
+			}
+		});
+		navigationView.getMenu().getItem(0).setChecked(true);
 	}
 	
 	/**
@@ -120,6 +176,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 				checkPermissions();
 			}
 		}
+	}
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		if (drawerToggle.onOptionsItemSelected(item)) {
+			return true;
+		}
+		
+		return super.onOptionsItemSelected(item);
 	}
 	
 	@Override

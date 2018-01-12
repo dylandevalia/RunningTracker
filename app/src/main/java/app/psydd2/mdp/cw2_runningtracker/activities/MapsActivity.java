@@ -260,6 +260,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		isRunning = false;
 		service.stopRecording();
 		
+		locations = service.getLocations();
+		
 		Toast.makeText(
 			MapsActivity.this,
 			R.string.stop_run,
@@ -376,7 +378,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	private void updateCameraPosition(int maxNoSteps, @Nullable LatLng currentPos) {
 		CameraUpdate cameraUpdate;
 		
-		if (locations == null) {
+		if (locations == null || currentPos == null) {
 			return;
 		} else if (locations.size() == 0) {
 			// While locations is empty move the camera

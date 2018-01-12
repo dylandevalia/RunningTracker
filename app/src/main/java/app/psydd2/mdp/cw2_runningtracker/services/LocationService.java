@@ -23,6 +23,8 @@ import java.util.ArrayList;
 
 public class LocationService extends Service {
 	
+	private static final int NOTIFICATION_ID = 812;
+	
 	/** Service binder */
 	private final LocationBinder binder = new LocationBinder();
 	
@@ -132,11 +134,8 @@ public class LocationService extends Service {
 			.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
 		builder.setContentIntent(resultPendingIntent);
 		
-		// Apply notification
-		NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-		if (manager != null) {
-			manager.notify(0, builder.build());
-		}
+		// Start service as a foreground service
+		startForeground(NOTIFICATION_ID, builder.build());
 	}
 	
 	@Override

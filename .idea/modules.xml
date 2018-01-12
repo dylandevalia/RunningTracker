@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/RunningTracker.iml" filepath="$PROJECT_DIR$/RunningTracker.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/cw2_runningTracker.iml" filepath="$PROJECT_DIR$/cw2_runningTracker.iml" />
     </modules>
   </component>
 </project>

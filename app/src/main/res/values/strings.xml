@@ -1,6 +1,9 @@
 <resources>
 	<string name="app_name">Running Tracker</string>
 	
+	<string name="start_run">Running</string>
+	<string name="stop_run">Saving Run</string>
+	
 	<string name="navigation_menu_header">Navigation</string>
 	<string name="navigation_menu_open">Open</string>
 	<string name="navigation_menu_close">Close</string>

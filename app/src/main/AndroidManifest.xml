@@ -26,10 +26,19 @@
 			android:name="com.google.android.geo.API_KEY"
 			android:value="@string/google_maps_key"/>
 		
-		<service android:name=".services.GPSService"/>
-		
 		<activity android:name=".activities.SettingsActivity">
+		
 		</activity>
+		
+		
+		<service android:name=".services.LocationService"/>
+		
+		<provider
+			android:authorities="app.psydd2.mdp.cw2_runningtracker.content_provider.LocationProvider"
+			android:name="app.psydd2.mdp.cw2_runningtracker.content_provider.LocationProvider"
+			android:exported="true"
+			android:multiprocess="true"/>
+		
 	</application>
 
 </manifest>

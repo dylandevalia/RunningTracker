@@ -2,9 +2,11 @@ package app.psydd2.mdp.cw2_runningtracker.activities;
 
 import android.Manifest.permission;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -12,9 +14,11 @@ import android.graphics.drawable.Drawable;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.annotation.ColorInt;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.NavigationView.OnNavigationItemSelectedListener;
@@ -24,12 +28,13 @@ import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Toast;
 import app.psydd2.mdp.cw2_runningtracker.R;
-import app.psydd2.mdp.cw2_runningtracker.services.GPSService;
+import app.psydd2.mdp.cw2_runningtracker.services.LocationService;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -48,7 +53,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	private final static int PERMISSION_REQUEST_CODE = 100;
 	
 	private FloatingActionButton fab;
-	boolean storeLocationInformation = false;
+	boolean isRunning = false;
 	private GoogleMap map;
 	private ArrayList<LatLng> locations = new ArrayList<>();
 	
@@ -57,39 +62,69 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	private DrawerLayout drawerLayout;
 	private ActionBarDrawerToggle drawerToggle;
 	
+	private LocationService.LocationBinder service = null;
+	private ServiceConnection serviceConnection = new ServiceConnection() {
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service) {
+			// Assign binder
+			MapsActivity.this.service = (LocationService.LocationBinder) service;
+			
+			// If service is already running
+			// Default state is not recording run so no else needed
+			if (MapsActivity.this.service.isRecording()) {
+				startRun(true);
+			}
+		}
+		
+		@Override
+		public void onServiceDisconnected(ComponentName name) {
+			// Remove reference to binder
+			service = null;
+		}
+	};
+	
+	/**
+	 * Gets references to the widgets from {@link R.layout}.activity_maps
+	 *
+	 * Initialises map fragment (code from Google's Android Documentation)
+	 *
+	 * Sets onClickListener for floating action button which starts the app
+	 * recording position data and storing it
+	 *
+	 * Sets-up navigation drawer and actionbar which listeners to switch activities
+	 */
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_maps);
+		
+		/* Map */
+		
 		// Obtain the SupportMapFragment and get notified when the map is ready to be used.
 		SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
 			.findFragmentById(R.id.map);
 		mapFragment.getMapAsync(this);
 		
+		
+		/* Floating action button */
+		
 		fab = findViewById(R.id.floating_action_button);
 		// Check if user has accepted the required permissions
 		if (checkPermissions()) {
 			// Start
-			Intent intent = new Intent(getApplicationContext(), GPSService.class);
+			Intent intent = new Intent(this, LocationService.class);
+			// Create and bind to service
 			startService(intent);
+			bindService(intent, serviceConnection, BIND_AUTO_CREATE);
 			
 			fab.setOnClickListener(new OnClickListener() {
 				@Override
 				public void onClick(View v) {
 					// Flip service from on/off
-					if (!storeLocationInformation) {
-						storeLocationInformation = true;
-						locations = new ArrayList<>();
-						// Change image to cross
-						fab.setImageResource(R.drawable.ic_clear_white_32dp);
-						map.setMaxZoomPreference(17);
+					if (!isRunning) {
+						startRun(false);
 					} else {
-						storeLocationInformation = false;
-						// Change image to plus
-						fab.setImageResource(R.drawable.ic_add_white_32dp);
-						// Update camera to show entire route
-						updateCameraPosition(-1);
-						map.resetMinMaxZoomPreference();
+						stopRun();
 					}
 				}
 			});
@@ -157,10 +192,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		// and app has location permissions
 		if (
 			VERSION.SDK_INT >= VERSION_CODES.M
-			&& ContextCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION)
+				&& ContextCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION)
 				!= PackageManager.PERMISSION_GRANTED
-		) {
-			// If not got permissions, request permission dialogue box
+			) {
+			// If not got permissions, request permission dialogue box with
+			// personal request code
 			requestPermissions(new String[]{
 				permission.ACCESS_FINE_LOCATION
 			}, PERMISSION_REQUEST_CODE);
@@ -199,9 +235,49 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		return super.onOptionsItemSelected(item);
 	}
 	
+	private void startRun(boolean alreadyRunning) {
+		isRunning = true;
+		
+		if (!alreadyRunning) {
+			service.startRecording();
+			
+			Toast.makeText(
+				MapsActivity.this,
+				R.string.start_run,
+				Toast.LENGTH_SHORT
+			).show();
+		}
+		
+		// Change image to cross
+		fab.setImageResource(R.drawable.ic_clear_white_32dp);
+		
+		// Set max zoom to prevent the camera zooming in too far
+		// when only a few points have been recorded
+		map.setMaxZoomPreference(17);
+	}
+	
+	private void stopRun() {
+		isRunning = false;
+		service.stopRecording();
+		
+		Toast.makeText(
+			MapsActivity.this,
+			R.string.stop_run,
+			Toast.LENGTH_SHORT
+		).show();
+		
+		// Change image to plus
+		fab.setImageResource(R.drawable.ic_add_white_32dp);
+		
+		// Update camera to show entire route
+		updateCameraPosition(-1, null);
+		// Reset min/max zoom
+		map.resetMinMaxZoomPreference();
+	}
+	
 	/**
 	 * Create and register the broadcast receiver which gets location information
-	 * from the {@link GPSService}
+	 * from the {@link LocationService}
 	 */
 	@Override
 	protected void onResume() {
@@ -221,44 +297,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 						return;
 					}
 					
-					// Create marker at new location
-					MarkerOptions marker = new MarkerOptions()
-						.position(currentPos)
-						.icon(vectorToBitmap(
-							R.drawable.ic_directions_run_black_32dp,
-							getApplicationContext().getColor(R.color.colorPrimary)
-							)
-						);
-					
-					// Clear the map of old markers and add new one
-					// This is to prevent loads of markers on the screen at each data-point
-					map.clear();
-					map.addMarker(marker);
-					
-					// While service is running, store points
-					if (storeLocationInformation) {
-						// Add current position to location array list
-						locations.add(currentPos);
-						
-						// Update and animate camera position
-						updateCameraPosition(10);
-					} else if (locations.size() == 0) {
-						// While locations is empty move the camera
-						// This is for when a run has been completed, it won't
-						// move the camera to the user and stay on the final route
-						// or where the user manually moves it
-						CameraUpdate cam = CameraUpdateFactory.newLatLngZoom(currentPos, 15);
-						map.animateCamera(cam);
+					// If bound to service, get stored locations
+					if (service != null) {
+						locations = service.getLocations();
 					}
 					
-					// Draw line between all points to show route
-					// Uses app accent colour
-					PolylineOptions line = new PolylineOptions()
-						.addAll(locations)
-						.width(10)
-						.color(getApplicationContext().getColor(R.color.colorAccent)
-						);
-					map.addPolyline(line);
+					updateMap(currentPos);
 				}
 			};
 		}
@@ -267,6 +311,40 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		registerReceiver(broadcastReceiver, new IntentFilter(
 			getApplicationContext().getString(R.string.location_updates)
 		));
+	}
+	
+	private void updateMap(LatLng currentPos) {
+		// Create marker at new location
+		MarkerOptions marker = new MarkerOptions()
+			.position(currentPos)
+			.icon(vectorToBitmap(
+				R.drawable.ic_directions_run_black_32dp,
+				getApplicationContext().getColor(R.color.colorPrimary)
+				)
+			);
+		
+		// Clear the map of old markers and add new one
+		// This is to prevent loads of markers on the screen at each data-point
+		map.clear();
+		map.addMarker(marker);
+		
+		if (locations == null) {
+			Log.d("\n\n\n\n", "location is null");
+			return;
+		} else {
+			Log.d("\n\n\n\n", "size: " + locations.size());
+		}
+		
+		updateCameraPosition(10, currentPos);
+		
+		// Draw line between all points to show route
+		// Uses app accent colour
+		PolylineOptions line = new PolylineOptions()
+			.addAll(locations)
+			.width(10)
+			.color(getApplicationContext().getColor(R.color.colorAccent)
+			);
+		map.addPolyline(line);
 	}
 	
 	/**
@@ -295,10 +373,18 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	 *
 	 * @param maxNoSteps Number of steps to keep in the frame (use -1 to show all)
 	 */
-	private void updateCameraPosition(int maxNoSteps) {
+	private void updateCameraPosition(int maxNoSteps, @Nullable LatLng currentPos) {
 		CameraUpdate cameraUpdate;
 		
-		if (locations.size() == 1) {
+		if (locations == null) {
+			return;
+		} else if (locations.size() == 0) {
+			// While locations is empty move the camera
+			// This is for when a run has been completed, it won't
+			// move the camera to the user and stay on the final route
+			// or where the user manually moves it
+			cameraUpdate = CameraUpdateFactory.newLatLngZoom(currentPos, 15);
+		} else if (locations.size() == 1) {
 			cameraUpdate = CameraUpdateFactory.newLatLngZoom(locations.get(0), 15);
 		} else {
 			LatLngBounds.Builder builder = new LatLngBounds.Builder();
@@ -341,6 +427,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		super.onDestroy();
 		if (broadcastReceiver != null) {
 			unregisterReceiver(broadcastReceiver);
+		}
+		
+		boolean running = service.isRecording();
+		unbindService(serviceConnection);
+		if (!running) {
+			// If not running then stop the location service
+			Intent intent = new Intent(this, LocationService.class);
+			stopService(intent);
 		}
 	}
 }

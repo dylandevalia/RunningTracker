@@ -28,13 +28,14 @@ import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Toast;
+
 import app.psydd2.mdp.cw2_runningtracker.R;
 import app.psydd2.mdp.cw2_runningtracker.services.LocationService;
+
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -46,11 +47,12 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+
 import java.util.ArrayList;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 	
-	private final static int PERMISSION_REQUEST_CODE = 100;
+	private final static int PERMISSION_REQUEST_CODE = 434;
 	
 	private FloatingActionButton fab;
 	boolean isRunning = false;
@@ -67,11 +69,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		@Override
 		public void onServiceConnected(ComponentName name, IBinder service) {
 			// Assign binder
-			MapsActivity.this.service = (LocationService.LocationBinder) service;
+			LocationService.LocationBinder s = MapsActivity.this.service = (LocationService.LocationBinder) service;
 			
 			// If service is already running
 			// Default state is not recording run so no else needed
-			if (MapsActivity.this.service.isRecording()) {
+			if (s.isRecording()) {
 				startRun(true);
 			}
 		}
@@ -85,12 +87,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	
 	/**
 	 * Gets references to the widgets from {@link R.layout}.activity_maps
-	 *
+	 * <p>
 	 * Initialises map fragment (code from Google's Android Documentation)
-	 *
+	 * <p>
 	 * Sets onClickListener for floating action button which starts the app
 	 * recording position data and storing it
-	 *
+	 * <p>
 	 * Sets-up navigation drawer and actionbar which listeners to switch activities
 	 */
 	@Override
@@ -237,6 +239,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	
 	private void startRun(boolean alreadyRunning) {
 		isRunning = true;
+		locations = null;
 		
 		if (!alreadyRunning) {
 			service.startRecording();
@@ -260,8 +263,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		isRunning = false;
 		service.stopRecording();
 		
-		locations = service.getLocations();
-		
 		Toast.makeText(
 			MapsActivity.this,
 			R.string.stop_run,
@@ -271,10 +272,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		// Change image to plus
 		fab.setImageResource(R.drawable.ic_add_white_32dp);
 		
-		// Update camera to show entire route
-		updateCameraPosition(-1, null);
 		// Reset min/max zoom
 		map.resetMinMaxZoomPreference();
+		// Update camera to show entire route
+		updateCameraPosition(-1, null);
 	}
 	
 	/**
@@ -299,9 +300,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 						return;
 					}
 					
-					// If bound to service, get stored locations
-					if (service != null) {
-						locations = service.getLocations();
+					// If bound to service and running, get stored locations
+					if (service != null && isRunning) {
+						if (locations == null) {
+							// If locations doesn't exist get the whole array list
+							locations = service.getPositions();
+						} else {
+							// Else just add the current position to out array list
+							locations.add(currentPos);
+						}
 					}
 					
 					updateMap(currentPos);
@@ -319,9 +326,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		// Create marker at new location
 		MarkerOptions marker = new MarkerOptions()
 			.position(currentPos)
-			.icon(vectorToBitmap(
-				R.drawable.ic_directions_run_black_32dp,
-				getApplicationContext().getColor(R.color.colorPrimary)
+			.icon(
+				vectorToBitmap(
+					R.drawable.ic_directions_run_black_32dp,
+					getApplicationContext().getColor(R.color.colorPrimary)
 				)
 			);
 		
@@ -331,10 +339,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		map.addMarker(marker);
 		
 		if (locations == null) {
-			Log.d("\n\n\n\n", "location is null");
 			return;
-		} else {
-			Log.d("\n\n\n\n", "size: " + locations.size());
 		}
 		
 		updateCameraPosition(10, currentPos);
@@ -352,7 +357,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	/**
 	 * Demonstrates converting a {@link Drawable} to a {@link BitmapDescriptor},
 	 * for use as a marker icon.
-	 *
+	 * <p>
 	 * Code from Google's Android documentation website
 	 */
 	private BitmapDescriptor vectorToBitmap(@DrawableRes int id, @ColorInt int color) {

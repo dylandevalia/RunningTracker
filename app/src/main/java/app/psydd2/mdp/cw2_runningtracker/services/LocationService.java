@@ -40,10 +40,10 @@ public class LocationService extends Service {
 	private boolean recordLocations = false;
 	
 	/** List of all locations while bound */
-	private ArrayList<LatLng> locations = new ArrayList<>(0);
+	private ArrayList<Location> locations = new ArrayList<>(0);
 	
 	/** Last recorded position - null if no positions recorded yet */
-	private LatLng currentPosition;
+	private Location currentPosition;
 	
 	// Already checked permissions so just suppressing the error in the editor
 	@SuppressLint("MissingPermission")
@@ -58,21 +58,26 @@ public class LocationService extends Service {
 				Intent intent = new Intent(
 					getApplicationContext().getString(R.string.location_updates)
 				);
-				// Make LatLng
-				LatLng latLng = currentPosition = new LatLng(
+				
+				// Update current position
+				currentPosition = location;
+				
+				// If someone is bound
+				if (recordLocations) {
+					locations.add(location);
+				}
+				
+				// Make LatLng from given location
+				LatLng latLng = new LatLng(
 					location.getLatitude(),
 					location.getLongitude()
 				);
-				// Add position to intent
+				
+				// Add position to intent and send
 				intent.putExtra(
 					getApplicationContext().getString(R.string.position_latlng),
 					latLng
 				);
-				
-				// If someone is bound
-				if (recordLocations) {
-					locations.add(latLng);
-				}
 				sendBroadcast(intent);
 			}
 			
@@ -95,7 +100,7 @@ public class LocationService extends Service {
 			}
 		};
 		
-		// Get reference o system location service
+		// Get reference to system location service
 		locationManager = (LocationManager) getApplicationContext()
 			.getSystemService(Context.LOCATION_SERVICE);
 		
@@ -147,14 +152,6 @@ public class LocationService extends Service {
 		super.onDestroy();
 	}
 	
-	private void removeNotifications() {
-		NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-		if (manager != null) {
-			// Remove all notifications
-			manager.cancelAll();
-		}
-	}
-	
 	public class LocationBinder extends Binder {
 		
 		public boolean isRecording() {
@@ -172,11 +169,21 @@ public class LocationService extends Service {
 		
 		public void stopRecording() {
 			recordLocations = false;
-			removeNotifications();
+			stopForeground(true);
 		}
 		
-		public ArrayList<LatLng> getLocations() {
-			return locations;
+		public ArrayList<LatLng> getPositions() {
+			ArrayList<LatLng> positions = new ArrayList<>();
+			
+			for (Location l : locations) {
+				positions.add(new LatLng(l.getLatitude(), l.getLongitude()));
+			}
+			
+			return positions;
+		}
+		
+		public LatLng getCurrentPosition() {
+			return new LatLng(currentPosition.getLatitude(), currentPosition.getLongitude());
 		}
 	}
 }

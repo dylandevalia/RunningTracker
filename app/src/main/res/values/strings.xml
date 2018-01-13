@@ -1,7 +1,7 @@
 <resources>
 	<string name="app_name">Running Tracker</string>
 	
-	<string name="start_run">Running</string>
+	<string name="start_run">Starting Run</string>
 	<string name="stop_run">Saving Run</string>
 	
 	<string name="navigation_menu_header">Navigation</string>

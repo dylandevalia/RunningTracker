@@ -30,22 +30,28 @@ public class SettingsActivity extends AppCompatActivity {
 		
 		/* Default values */
 		
+		final int[] defaults = new int[]{
+			getResources().getInteger(R.integer.default_max_zoom),
+			getResources().getInteger(R.integer.default_max_zoom_run),
+			getResources().getInteger(R.integer.default_no_points)
+		};
+		
 		TextView maxZoomDefault = findViewById(R.id.settings_text_max_zoom_default);
 		maxZoomDefault.setText(
 			getResources().getString(
-				R.string.settings_default, getResources().getInteger(R.integer.max_zoom)
+				R.string.settings_default, defaults[MAX_ZOOM]
 			)
 		);
 		TextView maxZoomRunDefault = findViewById(R.id.settings_text_max_zoom_run_default);
 		maxZoomRunDefault.setText(
 			getResources().getString(
-				R.string.settings_default, getResources().getInteger(R.integer.max_zoom_run)
+				R.string.settings_default, defaults[MAX_ZOOM_RUN]
 			)
 		);
 		TextView noPointsDefault = findViewById(R.id.settings_text_no_points_default);
 		noPointsDefault.setText(
 			getResources().getString(
-				R.string.settings_default, getResources().getInteger(R.integer.no_points)
+				R.string.settings_default, defaults[NO_POINTS]
 			)
 		);
 		
@@ -56,23 +62,23 @@ public class SettingsActivity extends AppCompatActivity {
 		final TextView textMaxZoom = findViewById(R.id.settings_text_max_zoom);
 		final TextView textMaxZoomRun = findViewById(R.id.settings_text_max_zoom_run);
 		final TextView textNoPoints = findViewById(R.id.settings_text_no_points);
-		SeekBar seekMaxZoom = findViewById(R.id.seek_max_zoom);
-		SeekBar seekMaxZoomRun = findViewById(R.id.seek_max_zoom_run);
-		SeekBar seekNoPoints = findViewById(R.id.seek_no_points);
+		final SeekBar seekMaxZoom = findViewById(R.id.seek_max_zoom);
+		final SeekBar seekMaxZoomRun = findViewById(R.id.seek_max_zoom_run);
+		final SeekBar seekNoPoints = findViewById(R.id.seek_no_points);
 		
 		// Get values
 		final int[] values = new int[3];
 		values[MAX_ZOOM] = pref.getInt(
 			getResources().getString(R.string.preferences_max_zoom),
-			getResources().getInteger(R.integer.max_zoom)
+			getResources().getInteger(R.integer.default_max_zoom)
 		);
 		values[MAX_ZOOM_RUN] = pref.getInt(
 			getResources().getString(R.string.preferences_max_zoom_run),
-			getResources().getInteger(R.integer.max_zoom_run)
+			getResources().getInteger(R.integer.default_max_zoom_run)
 		);
 		values[NO_POINTS] = pref.getInt(
 			getResources().getString(R.string.preferences_no_points),
-			getResources().getInteger(R.integer.no_points)
+			getResources().getInteger(R.integer.default_no_points)
 		);
 		
 		// Set to current values
@@ -152,7 +158,7 @@ public class SettingsActivity extends AppCompatActivity {
 		});
 		
 		
-		/* Save button */
+		/* Buttons */
 		
 		Button btn_save = findViewById(R.id.btn_save);
 		btn_save.setOnClickListener(new View.OnClickListener() {
@@ -167,6 +173,24 @@ public class SettingsActivity extends AppCompatActivity {
 				editor.commit();
 				setResult(RESULT_OK);
 				finish();
+			}
+		});
+		
+		Button btn_default = findViewById(R.id.btn_default);
+		btn_default.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				values[MAX_ZOOM] = defaults[MAX_ZOOM];
+				values[MAX_ZOOM_RUN] = defaults[MAX_ZOOM_RUN];
+				values[NO_POINTS] = defaults[NO_POINTS];
+				
+				seekMaxZoom.setProgress(defaults[MAX_ZOOM]);
+				seekMaxZoomRun.setProgress(defaults[MAX_ZOOM_RUN]);
+				seekNoPoints.setProgress(defaults[NO_POINTS]);
+				
+				textMaxZoom.setText(String.valueOf(defaults[MAX_ZOOM]));
+				textMaxZoomRun.setText(String.valueOf(defaults[MAX_ZOOM_RUN]));
+				textNoPoints.setText(String.valueOf(defaults[NO_POINTS]));
 			}
 		});
 	}

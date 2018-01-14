@@ -30,4 +30,6 @@
     <string name="settings_no_points">Distance To Keep In Frame</string>
     <string name="settings_default">(Default: <b>%1$d</b>)</string>
     <string name="settings_save">Save</string>
+    <string name="settings_button_default">Restore Defaults</string>
+    <string name="settings_zoom_description">Zoom Out &lt;-----   -----&gt; Zoom In</string>
 </resources>

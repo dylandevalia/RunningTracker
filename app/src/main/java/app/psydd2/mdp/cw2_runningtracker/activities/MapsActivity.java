@@ -443,7 +443,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		CameraUpdate cameraUpdate;
 		int zoom = pref.getInt(
 			getString(R.string.preferences_max_zoom),
-			getResources().getInteger(R.integer.max_zoom)
+			getResources().getInteger(R.integer.default_max_zoom)
 		);
 		
 		if (isRunning) {
@@ -451,7 +451,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 			// when only a few points have been recorded
 			int maxZoomRun = pref.getInt(
 				getString(R.string.preferences_max_zoom_run),
-				getResources().getInteger(R.integer.max_zoom_run)
+				getResources().getInteger(R.integer.default_max_zoom_run)
 			);
 			map.setMaxZoomPreference(maxZoomRun);
 		}
@@ -470,7 +470,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 			LatLngBounds.Builder builder = new LatLngBounds.Builder();
 			int maxNoSteps = pref.getInt(
 				getString(R.string.preferences_no_points),
-				getResources().getInteger(R.integer.no_points)
+				getResources().getInteger(R.integer.default_no_points)
 			);
 			
 			if (allPoints || maxNoSteps < 0) {

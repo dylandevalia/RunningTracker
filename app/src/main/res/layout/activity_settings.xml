@@ -45,6 +45,14 @@
 				android:textAlignment="center" />
 		</LinearLayout>
 
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_weight="0.25"
+			android:text="@string/settings_zoom_description"
+			android:textAlignment="center"
+			android:textSize="12sp" />
+
 		<SeekBar
 			android:id="@+id/seek_max_zoom"
 			android:layout_width="match_parent"
@@ -52,7 +60,7 @@
 			android:layout_weight="1"
 			android:max="20"
 			android:min="1"
-			android:progress="@integer/max_zoom" />
+			android:progress="@integer/default_max_zoom" />
 
 		<TextView
 			android:layout_width="match_parent"
@@ -87,6 +95,15 @@
 				android:textAlignment="center" />
 		</LinearLayout>
 
+		<TextView
+			android:id="@+id/textView3"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_weight="0.25"
+			android:text="@string/settings_zoom_description"
+			android:textAlignment="center"
+			android:textSize="12sp" />
+
 		<SeekBar
 			android:id="@+id/seek_max_zoom_run"
 			android:layout_width="match_parent"
@@ -94,7 +111,7 @@
 			android:layout_weight="1"
 			android:max="20"
 			android:min="1"
-			android:progress="@integer/max_zoom_run" />
+			android:progress="@integer/default_max_zoom_run" />
 
 		<TextView
 			android:layout_width="match_parent"
@@ -136,13 +153,28 @@
 			android:layout_weight="1"
 			android:max="50"
 			android:min="1"
-			android:progress="@integer/no_points" />
+			android:progress="@integer/default_no_points" />
 
-		<Button
-			android:id="@+id/btn_save"
+		<LinearLayout
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:layout_weight="1"
-			android:text="@string/settings_save" />
+			android:orientation="horizontal">
+
+			<Button
+				android:id="@+id/btn_save"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_weight="1"
+				android:text="@string/settings_save" />
+
+			<Button
+				android:id="@+id/btn_default"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_weight="1"
+				android:text="@string/settings_button_default" />
+		</LinearLayout>
+
 	</LinearLayout>
 </android.support.constraint.ConstraintLayout>

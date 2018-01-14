@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
@@ -49,6 +50,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import java.util.ArrayList;
 
 import app.psydd2.mdp.cw2_runningtracker.R;
+import app.psydd2.mdp.cw2_runningtracker.content_provider.DatabaseContract.LocationDataTable;
 import app.psydd2.mdp.cw2_runningtracker.services.LocationService;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
@@ -246,7 +248,30 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if (requestCode == DATA_ACTIVITY_CODE && resultCode == RESULT_OK) {
-		
+			if (isRunning) {
+				Toast.makeText(this, R.string.already_running, Toast.LENGTH_LONG)
+					.show();
+				return;
+			}
+			
+			int runId = data.getExtras().getInt(getString(R.string.run_id));
+			
+			String[] projection = new String[]{
+				LocationDataTable.ID,
+				LocationDataTable.LAT,
+				LocationDataTable.LNG,
+				LocationDataTable.TIME
+			};
+			
+			Cursor cursor = getContentResolver().query(
+				LocationDataTable.URI,
+				projection,
+				LocationDataTable.RUN_ID + " = " + runId,
+				null,
+				LocationDataTable.TIME + " ASC"
+			);
+			
+			
 		}
 	}
 	

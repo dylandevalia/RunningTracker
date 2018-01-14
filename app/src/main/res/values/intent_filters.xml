@@ -2,4 +2,5 @@
 <resources>
 	<string name="location_updates">location_updates</string>
 	<string name="position_latlng">position_latlng</string>
+	<string name="run_id">run_id</string>
 </resources>

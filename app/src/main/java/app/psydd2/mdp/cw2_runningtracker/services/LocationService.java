@@ -175,11 +175,13 @@ public class LocationService extends Service {
 			return;
 		}
 		
+		
+		/* Run data */
+		
 		ContentValues runValues = new ContentValues();
-		runValues.put(RunDataTable.START_TIME, String.valueOf(startTime.getTime()));
+		runValues.put(RunDataTable.START_TIME, startTime.getTime());
 		
-		/* Distance & duration */
-		
+		// Distance and duration
 		float dist = 0;
 		for (int i = 0; i < locations.size() - 1; i++) {
 			dist += locations.get(i).distanceTo(locations.get(i + 1));
@@ -189,7 +191,7 @@ public class LocationService extends Service {
 		long time = stopTime.getTime() - startTime.getTime();
 		
 		runValues.put(RunDataTable.DISTANCE, dist);
-		runValues.put(RunDataTable.DURATION, String.valueOf(time));
+		runValues.put(RunDataTable.DURATION, time);
 		
 		ContentResolver resolver = getContentResolver();
 		resolver.insert(RunDataTable.URI, runValues);
@@ -201,8 +203,12 @@ public class LocationService extends Service {
 			""
 		);
 		
+		// Get id of last entry (ie. the one just added above)
 		cursor.moveToLast();
-		int run_id = cursor.getInt(0);
+		int run_id = cursor.getInt(cursor.getColumnIndex(RunDataTable.ID));
+		
+		
+		/* Location data */
 		
 		ContentValues locValues = new ContentValues();
 		locValues.put(LocationDataTable.RUN_ID, run_id);
@@ -214,6 +220,8 @@ public class LocationService extends Service {
 			
 			resolver.insert(LocationDataTable.URI, locValues);
 		}
+		
+		cursor.close();
 	}
 	
 	@Override

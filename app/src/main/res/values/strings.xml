@@ -3,6 +3,7 @@
 
     <string name="start_run">Starting Run</string>
     <string name="stop_run">Saving Run</string>
+    <string name="already_running">Please stop running to view past runs</string>
 
     <string name="navigation_menu_header">Running Tracker</string>
     <string name="navigation_menu_open">Open</string>

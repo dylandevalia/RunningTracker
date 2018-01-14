@@ -1,5 +1,6 @@
 package app.psydd2.mdp.cw2_runningtracker.activities;
 
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -17,6 +18,7 @@ import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 import app.psydd2.mdp.cw2_runningtracker.R;
 import app.psydd2.mdp.cw2_runningtracker.content_provider.DatabaseContract.RunDataTable;
@@ -25,6 +27,8 @@ public class DataActivity extends AppCompatActivity {
 	
 	private DrawerLayout drawerLayout;
 	private ActionBarDrawerToggle drawerToggle;
+	
+	private int noEntries = 0;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -52,7 +56,7 @@ public class DataActivity extends AppCompatActivity {
 			public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 				switch (item.getItemId()) {
 					case R.id.nav_map:
-						setResult(RESULT_OK);
+						setResult(RESULT_CANCELED);
 						finish();
 						break;
 					case R.id.nav_past_data:
@@ -76,6 +80,47 @@ public class DataActivity extends AppCompatActivity {
 		
 		/* List View */
 		
+		Cursor cursor = populateListView();
+		
+		if (noEntries > 0) {
+			// Get longest time
+			cursor = getRunColumn(RunDataTable.DURATION, false);
+			
+			cursor.moveToFirst();
+			long millis = cursor.getInt(cursor.getColumnIndex(RunDataTable.DURATION));
+			String maxTime = longMillisToTime(millis);
+			TextView time = findViewById(R.id.data_max_time);
+			time.setText(maxTime);
+			
+			// Get longest distance
+			cursor = getRunColumn(RunDataTable.DISTANCE, false);
+			
+			cursor.moveToFirst();
+			long maxDist = cursor.getInt(cursor.getColumnIndex(RunDataTable.DISTANCE));
+			TextView dist = findViewById(R.id.data_max_dist);
+			dist.setText(maxDist + "m");
+		} else {
+			TextView time = findViewById(R.id.data_max_time);
+			TextView dist = findViewById(R.id.data_max_dist);
+			time.setText("--:--:--");
+			dist.setText("---");
+		}
+		
+		cursor.close();
+	}
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		if (drawerToggle.onOptionsItemSelected(item)) {
+			// Intercept the onClick and return true if it belongs to
+			// the navigation drawer
+			return true;
+		}
+		
+		return super.onOptionsItemSelected(item);
+	}
+	
+	private Cursor populateListView() {
 		String[] projection = new String[]{
 			RunDataTable.ID,
 			RunDataTable.START_TIME,
@@ -86,8 +131,11 @@ public class DataActivity extends AppCompatActivity {
 		Cursor cursor = getContentResolver().query(
 			RunDataTable.URI,
 			projection,
-			null, null, null
+			null, null,
+			RunDataTable.START_TIME + " DESC"
 		);
+		
+		noEntries = cursor.getCount();
 		
 		String[] toDisplay = new String[]{
 			RunDataTable.START_TIME,
@@ -140,54 +188,33 @@ public class DataActivity extends AppCompatActivity {
 		
 		listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 			@Override
-			public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-			
+			public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+				int id = noEntries - position + 1;
+				Intent returnIntent = new Intent();
+				returnIntent.putExtra(getString(R.string.run_id), id);
+				setResult(RESULT_OK, returnIntent);
 			}
 		});
 		
-		cursor = getContentResolver().query(
-			RunDataTable.URI,
-			projection,
-			null, null,
-			RunDataTable.DISTANCE + " DESC"
-		);
-		
-		cursor.moveToFirst();
-		String maxDist = cursor.getString(cursor.getColumnIndex(RunDataTable.DISTANCE));
-		TextView dist = findViewById(R.id.data_max_dist);
-		dist.setText(maxDist + "m");
-		
-		cursor = getContentResolver().query(
-			RunDataTable.URI,
-			projection,
-			null, null,
-			RunDataTable.DURATION + " ASC"
-		);
-		
-		cursor.moveToLast();
-		String maxTime = cursor.getString(cursor.getColumnIndex(RunDataTable.DURATION));
-		long millis = Long.parseLong(maxTime);
-		maxTime = longMillisToTime(millis);
-		TextView time = findViewById(R.id.data_max_time);
-		time.setText(maxTime);
-		
+		return cursor;
 	}
 	
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		if (drawerToggle.onOptionsItemSelected(item)) {
-			// Intercept the onClick and return true if it belongs to
-			// the navigation drawer
-			return true;
-		}
-		
-		return super.onOptionsItemSelected(item);
+	private Cursor getRunColumn(String column, boolean asc) {
+		return getContentResolver().query(
+			RunDataTable.URI,
+			new String[]{
+				RunDataTable.ID,
+				column
+			},
+			null, null,
+			column + (asc ? " ASC" : " DESC")
+		);
 	}
 	
 	private String longMillisToTime(long millis) {
 		long second = (millis / 1000) % 60;
 		long minute = (millis / (1000 * 60)) % 60;
 		long hour = (millis / (1000 * 60 * 60)) % 24;
-		return String.format("%02d:%02d:%02d", hour, minute, second);
+		return String.format(Locale.UK, "%02d:%02d:%02d", hour, minute, second);
 	}
 }

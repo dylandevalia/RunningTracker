@@ -257,7 +257,9 @@ public class LocationService extends Service {
 			Date stopTime = new Date();
 			
 			recordLocations = false;
-			saveToDatabase(stopTime);
+			if (locations.size() > 0) {
+				saveToDatabase(stopTime);
+			}
 			stopForeground(true);
 		}
 		

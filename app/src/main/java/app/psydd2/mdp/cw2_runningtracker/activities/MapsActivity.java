@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -70,6 +71,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	private DrawerLayout drawerLayout;
 	private ActionBarDrawerToggle drawerToggle;
 	
+	private SharedPreferences pref;
+	
 	private LocationService.LocationBinder service = null;
 	private ServiceConnection serviceConnection = new ServiceConnection() {
 		@Override
@@ -113,6 +116,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 			.enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
 			.enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
 			.build());
+		
+		
+		/* Shared Preferences */
+		
+		pref = getSharedPreferences(getString(R.string.preferences_path), MODE_PRIVATE);
 		
 		
 		/* Map */
@@ -171,15 +179,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 					case R.id.nav_map:
 						break;
 					case R.id.nav_past_data:
-						Intent intent = new Intent(MapsActivity.this, DataActivity.class);
-						startActivityForResult(intent, DATA_ACTIVITY_CODE);
+						Intent data_intent = new Intent(MapsActivity.this, DataActivity.class);
+						startActivityForResult(data_intent, DATA_ACTIVITY_CODE);
 						break;
 					case R.id.nav_settings:
-						Toast.makeText(
-							MapsActivity.this,
-							R.string.navigation_menu_settings,
-							Toast.LENGTH_SHORT
-						).show();
+						Intent sett_intent = new Intent(MapsActivity.this, SettingsActivity.class);
+						startActivity(sett_intent);
 						break;
 				}
 				
@@ -248,14 +253,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if (requestCode == DATA_ACTIVITY_CODE && resultCode == RESULT_OK) {
+			// Only show route if not running
 			if (isRunning) {
 				Toast.makeText(this, R.string.already_running, Toast.LENGTH_LONG)
 					.show();
 				return;
 			}
 			
+			// Get id of run from intent
 			int runId = data.getExtras().getInt(getString(R.string.run_id));
 			
+			// Query database
 			String[] projection = new String[]{
 				LocationDataTable.ID,
 				LocationDataTable.LAT,
@@ -271,7 +279,23 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 				LocationDataTable.TIME + " ASC"
 			);
 			
+			// Go through cursor and store locations
+			positions = new ArrayList<>();
+			cursor.moveToFirst();
+			int latIndex = cursor.getColumnIndex(LocationDataTable.LAT);
+			int lngIndex = cursor.getColumnIndex(LocationDataTable.LNG);
+			while (cursor.moveToNext()) {
+				LatLng latLng = new LatLng(
+					cursor.getDouble(latIndex),
+					cursor.getDouble(lngIndex)
+				);
+				positions.add(latLng);
+			}
+			cursor.close();
 			
+			// Draw on map and update camera
+			drawRouteOnMap();
+			updateCameraPosition(true, null);
 		}
 	}
 	
@@ -280,6 +304,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		hasRunOnce = true;
 		positions = null;
 		
+		// Only show toast if not running
+		// eg. if app is closed and reopened don't show
 		if (!alreadyRunning) {
 			service.startRecording();
 			
@@ -292,10 +318,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		
 		// Change image to cross
 		fab.setImageResource(R.drawable.ic_clear_white_32dp);
-		
-		// Set max zoom to prevent the camera zooming in too far
-		// when only a few points have been recorded
-		map.setMaxZoomPreference(17);
 	}
 	
 	private void stopRun() {
@@ -314,7 +336,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		// Reset min/max zoom
 		map.resetMinMaxZoomPreference();
 		// Update camera to show entire route
-		updateCameraPosition(-1, null);
+		updateCameraPosition(true, null);
 	}
 	
 	/**
@@ -361,6 +383,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		));
 	}
 	
+	/**
+	 * Updates the map by drawing the marker and current route
+	 *
+	 * @param currentPos The user's current position
+	 */
 	private void updateMap(LatLng currentPos) {
 		// Create marker at new location
 		MarkerOptions marker = new MarkerOptions()
@@ -381,16 +408,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 			return;
 		}
 		
-		updateCameraPosition(10, currentPos);
+		drawRouteOnMap();
 		
-		// Draw line between all points to show route
-		// Uses app accent colour
-		PolylineOptions line = new PolylineOptions()
-			.addAll(positions)
-			.width(10)
-			.color(getApplicationContext().getColor(R.color.colorAccent)
-			);
-		map.addPolyline(line);
+		updateCameraPosition(false, currentPos);
 	}
 	
 	/**
@@ -417,31 +437,52 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	/**
 	 * Update the map camera's position and zoom, and animate to it
 	 *
-	 * @param maxNoSteps Number of steps to keep in the frame (use -1 to show all)
+	 * @param allPoints Show all points or just previous x (Default: 10)
 	 */
-	private void updateCameraPosition(int maxNoSteps, @Nullable LatLng currentPos) {
+	private void updateCameraPosition(boolean allPoints, @Nullable LatLng currentPos) {
 		CameraUpdate cameraUpdate;
+		int zoom = pref.getInt(
+			getString(R.string.preferences_max_zoom),
+			getResources().getInteger(R.integer.max_zoom)
+		);
+		
+		if (isRunning) {
+			// Set max zoom to prevent the camera zooming in too far
+			// when only a few points have been recorded
+			int maxZoomRun = pref.getInt(
+				getString(R.string.preferences_max_zoom_run),
+				getResources().getInteger(R.integer.max_zoom_run)
+			);
+			map.setMaxZoomPreference(maxZoomRun);
+		}
 		
 		if (positions == null) {
 			return;
-		} else if (positions.size() == 0 || (hasRunOnce && isRunning)) {
+		} else if (positions.size() == 0) {
 			// While positions is empty move the camera
 			// This is for when a run has been completed, it won't
 			// move the camera to the user and stay on the final route
 			// or where the user manually moves it
-			cameraUpdate = CameraUpdateFactory.newLatLngZoom(currentPos, 15);
+			cameraUpdate = CameraUpdateFactory.newLatLngZoom(currentPos, zoom);
 		} else if (positions.size() == 1) {
-			cameraUpdate = CameraUpdateFactory.newLatLngZoom(positions.get(0), 15);
-		} else if (positions.size() > 1) {
+			cameraUpdate = CameraUpdateFactory.newLatLngZoom(positions.get(0), zoom);
+		} else { // if (positions.size() > 1) {
 			LatLngBounds.Builder builder = new LatLngBounds.Builder();
+			int maxNoSteps = pref.getInt(
+				getString(R.string.preferences_no_points),
+				getResources().getInteger(R.integer.no_points)
+			);
 			
-			if (maxNoSteps < 0) {
+			if (allPoints || maxNoSteps < 0) {
 				// If '-1' use all positions
 				for (LatLng pos : positions) {
 					builder.include(pos);
 				}
+			} else if (!isRunning && hasRunOnce) {
+				return;
 			} else {
 				int length = positions.size();
+				
 				for (int i = (length > maxNoSteps) ? length - maxNoSteps : 0; i < length; i++) {
 					
 					builder.include(positions.get(i));
@@ -450,12 +491,23 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 			
 			LatLngBounds bounds = builder.build();
 			cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, 100);
-		} else {
-			int i = 0;
-			throw new RuntimeException("who knows");
 		}
 		
 		map.animateCamera(cameraUpdate);
+	}
+	
+	/**
+	 * Draw route on map using {@link #positions}
+	 */
+	private void drawRouteOnMap() {
+		// Draw line between all points to show route
+		// Uses app accent colour
+		PolylineOptions line = new PolylineOptions()
+			.addAll(positions)
+			.width(10)
+			.color(getApplicationContext().getColor(R.color.colorAccent)
+			);
+		map.addPolyline(line);
 	}
 	
 	/**

@@ -14,7 +14,6 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -34,6 +33,7 @@ public class DataActivity extends AppCompatActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_data);
+		setTitle(R.string.navigation_menu_data);
 		
 		/* Navigation panel */
 		
@@ -62,11 +62,8 @@ public class DataActivity extends AppCompatActivity {
 					case R.id.nav_past_data:
 						break;
 					case R.id.nav_settings:
-						Toast.makeText(
-							DataActivity.this,
-							R.string.navigation_menu_settings,
-							Toast.LENGTH_SHORT
-						).show();
+						Intent sett_intent = new Intent(DataActivity.this, SettingsActivity.class);
+						startActivity(sett_intent);
 						break;
 				}
 				
@@ -120,6 +117,11 @@ public class DataActivity extends AppCompatActivity {
 		return super.onOptionsItemSelected(item);
 	}
 	
+	/**
+	 * Query the database for runs and populate the list view
+	 *
+	 * @return The cursor object used to query the database so it can be reused
+	 */
 	private Cursor populateListView() {
 		String[] projection = new String[]{
 			RunDataTable.ID,
@@ -148,8 +150,6 @@ public class DataActivity extends AppCompatActivity {
 			R.id.run_list_time,
 			R.id.run_list_distance
 		};
-		
-		final long[] max = new long[]{0, 0};
 		
 		SimpleCursorAdapter dataAdapter = new SimpleCursorAdapter(
 			this,
@@ -189,16 +189,24 @@ public class DataActivity extends AppCompatActivity {
 		listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 			@Override
 			public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-				int id = noEntries - position + 1;
+				int id = noEntries - position;
 				Intent returnIntent = new Intent();
 				returnIntent.putExtra(getString(R.string.run_id), id);
 				setResult(RESULT_OK, returnIntent);
+				finish();
 			}
 		});
 		
 		return cursor;
 	}
 	
+	/**
+	 * Query the run table to get a specific column
+	 *
+	 * @param column The column to get
+	 * @param asc
+	 * @return
+	 */
 	private Cursor getRunColumn(String column, boolean asc) {
 		return getContentResolver().query(
 			RunDataTable.URI,

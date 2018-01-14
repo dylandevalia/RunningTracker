@@ -18,8 +18,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 		// Allow SQLite to use foreign keys
 		db.execSQL("PRAGMA foreign_keys = 1;");
 		
-		db.execSQL("DROP TABLE IF EXISTS " + LocationDataTable.TABLE_NAME);
-		db.execSQL("DROP TABLE IF EXISTS " + RunDataTable.TABLE_NAME);
+//		db.execSQL("DROP TABLE IF EXISTS " + LocationDataTable.TABLE_NAME);
+//		db.execSQL("DROP TABLE IF EXISTS " + RunDataTable.TABLE_NAME);
 		
 		// Create run data table which is used for each run
 		db.execSQL(

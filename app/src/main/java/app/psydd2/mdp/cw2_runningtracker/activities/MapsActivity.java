@@ -54,6 +54,7 @@ import app.psydd2.mdp.cw2_runningtracker.services.LocationService;
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 	
 	private final static int PERMISSION_REQUEST_CODE = 434;
+	private final static int DATA_ACTIVITY_CODE = 478;
 	
 	boolean isRunning = false;
 	boolean hasRunOnce = false;
@@ -147,7 +148,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		
 		/* Navigation panel */
 		
-		drawerLayout = findViewById(R.id.drawer_layout);
+		drawerLayout = findViewById(R.id.drawer_layout_maps);
 		drawerToggle = new ActionBarDrawerToggle(
 			this,
 			drawerLayout,
@@ -160,20 +161,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		
 		// Do stuff when items are pressed
-		NavigationView navigationView = findViewById(R.id.navigation);
+		NavigationView navigationView = findViewById(R.id.navigation_maps);
 		navigationView.setNavigationItemSelectedListener(new OnNavigationItemSelectedListener() {
 			@Override
 			public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 				switch (item.getItemId()) {
 					case R.id.nav_map:
-						drawerLayout.closeDrawers();
 						break;
 					case R.id.nav_past_data:
-						Toast.makeText(
-							MapsActivity.this,
-							R.string.navigation_menu_data,
-							Toast.LENGTH_SHORT
-						).show();
+						Intent intent = new Intent(MapsActivity.this, DataActivity.class);
+						startActivityForResult(intent, DATA_ACTIVITY_CODE);
 						break;
 					case R.id.nav_settings:
 						Toast.makeText(
@@ -183,6 +180,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 						).show();
 						break;
 				}
+				
+				drawerLayout.closeDrawers();
 				return true;
 			}
 		});
@@ -242,6 +241,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		}
 		
 		return super.onOptionsItemSelected(item);
+	}
+	
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (requestCode == DATA_ACTIVITY_CODE && resultCode == RESULT_OK) {
+		
+		}
 	}
 	
 	private void startRun(boolean alreadyRunning) {

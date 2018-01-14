@@ -176,7 +176,7 @@ public class LocationService extends Service {
 		}
 		
 		ContentValues runValues = new ContentValues();
-		runValues.put(RunDataTable.START_TIME, startTime.getTime());
+		runValues.put(RunDataTable.START_TIME, String.valueOf(startTime.getTime()));
 		
 		/* Distance & duration */
 		
@@ -189,7 +189,7 @@ public class LocationService extends Service {
 		long time = stopTime.getTime() - startTime.getTime();
 		
 		runValues.put(RunDataTable.DISTANCE, dist);
-		runValues.put(RunDataTable.DURATION, time);
+		runValues.put(RunDataTable.DURATION, String.valueOf(time));
 		
 		ContentResolver resolver = getContentResolver();
 		resolver.insert(RunDataTable.URI, runValues);

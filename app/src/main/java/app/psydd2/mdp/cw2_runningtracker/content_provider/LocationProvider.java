@@ -9,7 +9,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import app.psydd2.mdp.cw2_runningtracker.content_provider.Contract.LocationTableData;
+
+import app.psydd2.mdp.cw2_runningtracker.content_provider.DatabaseContract.LocationDataTable;
+import app.psydd2.mdp.cw2_runningtracker.content_provider.DatabaseContract.RunDataTable;
 
 public class LocationProvider extends ContentProvider {
 	
@@ -20,11 +22,14 @@ public class LocationProvider extends ContentProvider {
 	
 	static {
 		uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-		// Add Location Table
-		uriMatcher.addURI(Contract.AUTORITY, LocationTableData.TABLE_NAME, 1);
-		uriMatcher.addURI(Contract.AUTORITY, LocationTableData.TABLE_NAME + "/#", 2);
+		// Add runs table
+		uriMatcher.addURI(DatabaseContract.AUTHORITY, RunDataTable.TABLE_NAME, 1);
+		uriMatcher.addURI(DatabaseContract.AUTHORITY, RunDataTable.TABLE_NAME + "/#", 2);
+		// Add locations table
+		uriMatcher.addURI(DatabaseContract.AUTHORITY, LocationDataTable.TABLE_NAME, 3);
+		uriMatcher.addURI(DatabaseContract.AUTHORITY, LocationDataTable.TABLE_NAME + "/#", 4);
 		// If not found return code '9'
-		uriMatcher.addURI(Contract.AUTORITY, "*", 9);
+		uriMatcher.addURI(DatabaseContract.AUTHORITY, "*", 9);
 	}
 	
 	/**
@@ -43,9 +48,9 @@ public class LocationProvider extends ContentProvider {
 	@Override
 	public String getType(@NonNull Uri uri) {
 		if (uri.getLastPathSegment() == null) {
-			return Contract.CONTENT_TYPE_MULTIPLE;
+			return DatabaseContract.CONTENT_TYPE_MULTIPLE;
 		} else {
-			return Contract.CONTENT_TYPE_SINGLE;
+			return DatabaseContract.CONTENT_TYPE_SINGLE;
 		}
 	}
 	
@@ -58,7 +63,11 @@ public class LocationProvider extends ContentProvider {
 		switch (uriMatcher.match(uri)) {
 			case 1:
 			case 2:
-				tableName = LocationTableData.TABLE_NAME;
+				tableName = RunDataTable.TABLE_NAME;
+				break;
+			case 3:
+			case 4:
+				tableName = LocationDataTable.TABLE_NAME;
 				break;
 			default:
 				throw new UnsupportedOperationException("Unknown Table");
@@ -85,10 +94,22 @@ public class LocationProvider extends ContentProvider {
 		
 		switch (uriMatcher.match(uri)) {
 			case 2:
-				selection = LocationTableData.ID + " = " + uri.getLastPathSegment();
+				selection = RunDataTable.ID + " = " + uri.getLastPathSegment();
 			case 1:
 				return db.query(
-					LocationTableData.TABLE_NAME,
+					RunDataTable.TABLE_NAME,
+					projection,
+					selection,
+					selectionArgs,
+					null,
+					null,
+					sortOrder
+				);
+			case 4:
+				selection = LocationDataTable.ID + " = " + uri.getLastPathSegment();
+			case 3:
+				return db.query(
+					LocationDataTable.TABLE_NAME,
 					projection,
 					selection,
 					selectionArgs,

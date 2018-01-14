@@ -33,9 +33,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Toast;
 
-import app.psydd2.mdp.cw2_runningtracker.R;
-import app.psydd2.mdp.cw2_runningtracker.services.LocationService;
-
+import com.facebook.stetho.Stetho;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -50,14 +48,19 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.ArrayList;
 
+import app.psydd2.mdp.cw2_runningtracker.R;
+import app.psydd2.mdp.cw2_runningtracker.services.LocationService;
+
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 	
 	private final static int PERMISSION_REQUEST_CODE = 434;
 	
-	private FloatingActionButton fab;
 	boolean isRunning = false;
+	boolean hasRunOnce = false;
+	
+	private FloatingActionButton fab;
 	private GoogleMap map;
-	private ArrayList<LatLng> locations = new ArrayList<>();
+	private ArrayList<LatLng> positions = new ArrayList<>();
 	
 	private BroadcastReceiver broadcastReceiver;
 	
@@ -99,6 +102,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_maps);
+		setTitle(R.string.navigation_menu_map);
+		
+		/* Facebook API to see database in chrome */
+		
+		Stetho.initialize(Stetho.newInitializerBuilder(this)
+			.enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
+			.enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
+			.build());
+		
 		
 		/* Map */
 		
@@ -154,11 +166,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 			public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 				switch (item.getItemId()) {
 					case R.id.nav_map:
-						Toast.makeText(
-							MapsActivity.this,
-							R.string.navigation_menu_map,
-							Toast.LENGTH_SHORT
-						).show();
 						drawerLayout.closeDrawers();
 						break;
 					case R.id.nav_past_data:
@@ -239,7 +246,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	
 	private void startRun(boolean alreadyRunning) {
 		isRunning = true;
-		locations = null;
+		hasRunOnce = true;
+		positions = null;
 		
 		if (!alreadyRunning) {
 			service.startRecording();
@@ -300,14 +308,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 						return;
 					}
 					
-					// If bound to service and running, get stored locations
+					// If bound to service and running, get stored positions
 					if (service != null && isRunning) {
-						if (locations == null) {
-							// If locations doesn't exist get the whole array list
-							locations = service.getPositions();
+						if (positions == null) {
+							// If positions doesn't exist get the whole array list
+							positions = service.getPositions();
 						} else {
 							// Else just add the current position to out array list
-							locations.add(currentPos);
+							positions.add(currentPos);
 						}
 					}
 					
@@ -338,7 +346,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		map.clear();
 		map.addMarker(marker);
 		
-		if (locations == null) {
+		if (positions == null) {
 			return;
 		}
 		
@@ -347,7 +355,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		// Draw line between all points to show route
 		// Uses app accent colour
 		PolylineOptions line = new PolylineOptions()
-			.addAll(locations)
+			.addAll(positions)
 			.width(10)
 			.color(getApplicationContext().getColor(R.color.colorAccent)
 			);
@@ -383,33 +391,37 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	private void updateCameraPosition(int maxNoSteps, @Nullable LatLng currentPos) {
 		CameraUpdate cameraUpdate;
 		
-		if (locations == null || currentPos == null) {
+		if (positions == null) {
 			return;
-		} else if (locations.size() == 0) {
-			// While locations is empty move the camera
+		} else if (positions.size() == 0 || (hasRunOnce && isRunning)) {
+			// While positions is empty move the camera
 			// This is for when a run has been completed, it won't
 			// move the camera to the user and stay on the final route
 			// or where the user manually moves it
 			cameraUpdate = CameraUpdateFactory.newLatLngZoom(currentPos, 15);
-		} else if (locations.size() == 1) {
-			cameraUpdate = CameraUpdateFactory.newLatLngZoom(locations.get(0), 15);
-		} else {
+		} else if (positions.size() == 1) {
+			cameraUpdate = CameraUpdateFactory.newLatLngZoom(positions.get(0), 15);
+		} else if (positions.size() > 1) {
 			LatLngBounds.Builder builder = new LatLngBounds.Builder();
 			
 			if (maxNoSteps < 0) {
-				for (LatLng pos : locations) {
+				// If '-1' use all positions
+				for (LatLng pos : positions) {
 					builder.include(pos);
 				}
 			} else {
-				int length = locations.size();
+				int length = positions.size();
 				for (int i = (length > maxNoSteps) ? length - maxNoSteps : 0; i < length; i++) {
 					
-					builder.include(locations.get(i));
+					builder.include(positions.get(i));
 				}
 			}
 			
 			LatLngBounds bounds = builder.build();
 			cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, 100);
+		} else {
+			int i = 0;
+			throw new RuntimeException("who knows");
 		}
 		
 		map.animateCamera(cameraUpdate);

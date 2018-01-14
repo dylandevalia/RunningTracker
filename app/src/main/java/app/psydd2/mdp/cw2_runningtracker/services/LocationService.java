@@ -1,12 +1,14 @@
 package app.psydd2.mdp.cw2_runningtracker.services;
 
 import android.annotation.SuppressLint;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.app.TaskStackBuilder;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -16,19 +18,30 @@ import android.os.IBinder;
 import android.provider.Settings;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat.Builder;
+
+import com.google.android.gms.maps.model.LatLng;
+
+import java.util.ArrayList;
+import java.util.Date;
+
 import app.psydd2.mdp.cw2_runningtracker.R;
 import app.psydd2.mdp.cw2_runningtracker.activities.MapsActivity;
-import com.google.android.gms.maps.model.LatLng;
-import java.util.ArrayList;
+import app.psydd2.mdp.cw2_runningtracker.content_provider.DatabaseContract.LocationDataTable;
+import app.psydd2.mdp.cw2_runningtracker.content_provider.DatabaseContract.RunDataTable;
+import app.psydd2.mdp.cw2_runningtracker.content_provider.DatabaseHelper;
 
 public class LocationService extends Service {
 	
 	private static final int NOTIFICATION_ID = 812;
 	
-	/** Service binder */
+	/**
+	 * Service binder
+	 */
 	private final LocationBinder binder = new LocationBinder();
 	
-	/** Reference to the system's location service */
+	/**
+	 * Reference to the system's location service
+	 */
 	private LocationManager locationManager;
 	
 	/**
@@ -39,11 +52,19 @@ public class LocationService extends Service {
 	
 	private boolean recordLocations = false;
 	
-	/** List of all locations while bound */
+	/**
+	 * List of all locations while bound
+	 */
 	private ArrayList<Location> locations = new ArrayList<>(0);
 	
-	/** Last recorded position - null if no positions recorded yet */
+	/**
+	 * Last recorded position - null if no positions recorded yet
+	 */
 	private Location currentPosition;
+	
+	private Date startTime;
+	
+	private DatabaseHelper dbHelper;
 	
 	// Already checked permissions so just suppressing the error in the editor
 	@SuppressLint("MissingPermission")
@@ -113,6 +134,12 @@ public class LocationService extends Service {
 				listener
 			);
 		}
+		
+		
+		/* Database */
+		
+		dbHelper = new DatabaseHelper(this);
+		dbHelper.onCreate(dbHelper.getWritableDatabase());
 	}
 	
 	@Nullable
@@ -143,6 +170,52 @@ public class LocationService extends Service {
 		startForeground(NOTIFICATION_ID, builder.build());
 	}
 	
+	private void saveToDatabase(Date stopTime) {
+		if (locations == null || locations.size() == 0) {
+			return;
+		}
+		
+		ContentValues runValues = new ContentValues();
+		runValues.put(RunDataTable.START_TIME, startTime.getTime());
+		
+		/* Distance & duration */
+		
+		float dist = 0;
+		for (int i = 0; i < locations.size() - 1; i++) {
+			dist += locations.get(i).distanceTo(locations.get(i + 1));
+		}
+		
+		// Time in ms
+		long time = stopTime.getTime() - startTime.getTime();
+		
+		runValues.put(RunDataTable.DISTANCE, dist);
+		runValues.put(RunDataTable.DURATION, time);
+		
+		ContentResolver resolver = getContentResolver();
+		resolver.insert(RunDataTable.URI, runValues);
+		
+		Cursor cursor = resolver.query(
+			RunDataTable.URI,
+			new String[]{RunDataTable.ID},
+			null, null,
+			""
+		);
+		
+		cursor.moveToLast();
+		int run_id = cursor.getInt(0);
+		
+		ContentValues locValues = new ContentValues();
+		locValues.put(LocationDataTable.RUN_ID, run_id);
+		for (Location l : locations) {
+			locValues.put(LocationDataTable.LAT, l.getLatitude());
+			locValues.put(LocationDataTable.LNG, l.getLongitude());
+			locValues.put(LocationDataTable.ALTITUDE, l.getAltitude());
+			locValues.put(LocationDataTable.TIME, l.getTime());
+			
+			resolver.insert(LocationDataTable.URI, locValues);
+		}
+	}
+	
 	@Override
 	public void onDestroy() {
 		if (locationManager != null) {
@@ -159,8 +232,12 @@ public class LocationService extends Service {
 		}
 		
 		public void startRecording() {
+			// Want to get time first so it's more accurate
+			startTime = new Date();
+			
 			recordLocations = true;
 			setupNotification();
+			
 			locations = new ArrayList<>();
 			if (currentPosition != null) {
 				locations.add(currentPosition);
@@ -168,7 +245,11 @@ public class LocationService extends Service {
 		}
 		
 		public void stopRecording() {
+			// Want to get time first so it's more accurate
+			Date stopTime = new Date();
+			
 			recordLocations = false;
+			saveToDatabase(stopTime);
 			stopForeground(true);
 		}
 		

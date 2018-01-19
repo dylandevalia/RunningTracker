@@ -110,12 +110,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		setContentView(R.layout.activity_maps);
 		setTitle(R.string.navigation_menu_map);
 		
-		/* Facebook API to see database in chrome */
+		/* Facebook API to see database information in chrome */
 		
-		Stetho.initialize(Stetho.newInitializerBuilder(this)
-			.enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
-			.enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
-			.build());
+		Stetho.initialize(
+			Stetho.newInitializerBuilder(this)
+				.enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
+				.enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
+				.build()
+		);
 		
 		
 		/* Shared Preferences */

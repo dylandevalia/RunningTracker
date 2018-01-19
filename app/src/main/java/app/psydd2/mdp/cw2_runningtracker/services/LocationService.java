@@ -34,14 +34,8 @@ public class LocationService extends Service {
 	
 	private static final int NOTIFICATION_ID = 812;
 	
-	/**
-	 * Service binder
-	 */
 	private final LocationBinder binder = new LocationBinder();
-	
-	/**
-	 * Reference to the system's location service
-	 */
+
 	private LocationManager locationManager;
 	
 	/**
@@ -52,14 +46,10 @@ public class LocationService extends Service {
 	
 	private boolean recordLocations = false;
 	
-	/**
-	 * List of all locations while bound
-	 */
+	/** List of all locations while bound */
 	private ArrayList<Location> locations = new ArrayList<>(0);
 	
-	/**
-	 * Last recorded position - null if no positions recorded yet
-	 */
+	/** Last recorded position - null if no positions recorded yet */
 	private Location currentPosition;
 	
 	private Date startTime;

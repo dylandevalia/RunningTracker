@@ -24,6 +24,7 @@ public class SettingsActivity extends AppCompatActivity {
 		setContentView(R.layout.activity_settings);
 		setTitle(getString(R.string.navigation_menu_settings));
 		
+		// Get preferences
 		pref = getSharedPreferences(getString(R.string.preferences_path), MODE_PRIVATE);
 		editor = pref.edit();
 		
